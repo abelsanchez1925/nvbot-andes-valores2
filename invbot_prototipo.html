@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InvBot</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+  :root{
+    --bg:#F3F6FC;
+    --surface:#FFFFFF;
+    --surface-alt:#EBF0FA;
+    --navy:#1E2761;
+    --navy-dark:#12173E;
+    --ice:#CFDDF7;
+    --gold:#B5872E;
+    --gold-soft:#F3E6C9;
+    --text:#1B2145;
+    --text-muted:#5B6685;
+    --border:#DCE4F4;
+    --success:#1E7A52;
+    --success-bg:#E4F3EC;
+    --pending:#B5872E;
+    --pending-bg:#FBF1DD;
+    --danger:#B4402A;
+    --danger-bg:#FBEAE5;
+    --shadow: 0 12px 30px -14px rgba(18,23,62,0.28);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1330;
+      --surface:#171C46;
+      --surface-alt:#1E2454;
+      --navy:#CFDDF7;
+      --navy-dark:#0B0E26;
+      --ice:#8EA6DE;
+      --gold:#E4B75B;
+      --gold-soft:#3A3218;
+      --text:#E9EDFB;
+      --text-muted:#A6AFD6;
+      --border:#2B3266;
+      --success:#6FD6A6;
+      --success-bg:#123527;
+      --pending:#E4B75B;
+      --pending-bg:#3A3218;
+      --danger:#F0897A;
+      --danger-bg:#3A1C18;
+      --shadow: 0 12px 30px -14px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1330;
+    --surface:#171C46;
+    --surface-alt:#1E2454;
+    --navy:#CFDDF7;
+    --navy-dark:#0B0E26;
+    --ice:#8EA6DE;
+    --gold:#E4B75B;
+    --gold-soft:#3A3218;
+    --text:#E9EDFB;
+    --text-muted:#A6AFD6;
+    --border:#2B3266;
+    --success:#6FD6A6;
+    --success-bg:#123527;
+    --pending:#E4B75B;
+    --pending-bg:#3A3218;
+    --danger:#F0897A;
+    --danger-bg:#3A1C18;
+    --shadow: 0 12px 30px -14px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter', system-ui, -apple-system, sans-serif;
+    min-height:100vh;
+  }
+  .app{
+    display:flex; flex-direction:column; min-height:100vh;
+  }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0.9rem 1.4rem; background:var(--navy); color:#fff;
+    gap:1rem; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:0.7rem; }
+  .brand-mark{
+    width:36px; height:36px; border-radius:9px; background:var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Source Serif 4', serif; font-weight:700; color:var(--navy-dark); font-size:1.1rem;
+  }
+  .brand-text h1{ margin:0; font-family:'Source Serif 4', serif; font-size:1.25rem; font-weight:700; }
+  .brand-text span{ font-size:0.75rem; color:var(--ice); letter-spacing:0.03em; }
+  .status-chip{
+    display:flex; align-items:center; gap:0.45rem;
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18);
+    padding:0.4rem 0.8rem; border-radius:999px; font-size:0.82rem;
+  }
+  .status-dot{ width:8px; height:8px; border-radius:50%; background:#8b93c4; }
+  .status-dot.on{ background:#6FD6A6; box-shadow:0 0 0 3px rgba(111,214,166,0.25); }
+  .reset-btn{
+    background:transparent; border:1px solid rgba(255,255,255,0.3); color:#fff;
+    padding:0.4rem 0.8rem; border-radius:8px; font-size:0.8rem; cursor:pointer;
+    font-family:inherit;
+  }
+  .reset-btn:hover{ background:rgba(255,255,255,0.12); }
+
+  .disclaimer{
+    background:var(--surface-alt); color:var(--text-muted); font-size:0.78rem;
+    text-align:center; padding:0.45rem 1rem; border-bottom:1px solid var(--border);
+  }
+
+  .layout{
+    flex:1; display:grid; grid-template-columns: minmax(0,1.5fr) minmax(300px, 1fr);
+    gap:1.1rem; padding:1.1rem 1.4rem 1.4rem; max-width:1280px; width:100%; margin:0 auto;
+  }
+  @media (max-width: 880px){ .layout{ grid-template-columns: 1fr; } }
+
+  .panel{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  .chat-panel{ height:min(72vh, 720px); }
+  .chat-header{
+    padding:0.9rem 1.1rem; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .chat-header h2{ margin:0; font-size:0.95rem; font-family:'Source Serif 4', serif; }
+  .chat-header .hint{ font-size:0.76rem; color:var(--text-muted); }
+
+  .messages{
+    flex:1; overflow-y:auto; padding:1.1rem; display:flex; flex-direction:column; gap:0.7rem;
+  }
+  .msg{ max-width:78%; padding:0.65rem 0.9rem; border-radius:14px; font-size:0.92rem; line-height:1.45; white-space:pre-wrap; }
+  .msg.bot{ align-self:flex-start; background:var(--surface-alt); border-bottom-left-radius:4px; color:var(--text); }
+  .msg.user{ align-self:flex-end; background:var(--navy); color:#fff; border-bottom-right-radius:4px; }
+  .msg.system{ align-self:center; background:transparent; color:var(--text-muted); font-size:0.78rem; font-style:italic; }
+
+  .quick-replies{ display:flex; flex-wrap:wrap; gap:0.5rem; padding:0 1.1rem 0.9rem; }
+  .qr-btn{
+    background:var(--surface); border:1px solid var(--gold); color:var(--gold);
+    padding:0.42rem 0.85rem; border-radius:999px; font-size:0.82rem; cursor:pointer;
+    font-family:inherit; font-weight:600; transition:background 0.15s ease;
+  }
+  .qr-btn:hover{ background:var(--gold-soft); }
+
+  .composer{
+    display:flex; gap:0.6rem; padding:0.9rem 1.1rem; border-top:1px solid var(--border);
+  }
+  .composer input{
+    flex:1; padding:0.65rem 0.9rem; border-radius:10px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); font-family:inherit; font-size:0.92rem;
+  }
+  .composer input:focus{ outline:2px solid var(--gold); outline-offset:1px; }
+  .composer button{
+    background:var(--navy); color:#fff; border:none; padding:0 1.15rem; border-radius:10px;
+    font-family:inherit; font-weight:600; cursor:pointer; font-size:0.9rem;
+  }
+  .composer button:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .side-col{ display:flex; flex-direction:column; gap:1.1rem; }
+
+  .account-card{ padding:1rem 1.1rem; }
+  .account-card h3{
+    margin:0 0 0.7rem; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--gold); font-weight:700;
+  }
+  .account-empty{ color:var(--text-muted); font-size:0.85rem; }
+  .account-row{ display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px dashed var(--border); font-size:0.86rem; }
+  .account-row:last-child{ border-bottom:none; }
+  .account-row .val{ font-family:'IBM Plex Mono', monospace; font-variant-numeric:tabular-nums; font-weight:600; }
+
+  .tickets-card{ flex:1; padding:1rem 1.1rem; display:flex; flex-direction:column; min-height:260px; }
+  .tickets-card h3{
+    margin:0 0 0.2rem; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--gold); font-weight:700;
+  }
+  .tickets-card .sub{ font-size:0.76rem; color:var(--text-muted); margin-bottom:0.7rem; }
+  .ticket-list{ display:flex; flex-direction:column; gap:0.55rem; overflow-y:auto; }
+  .ticket-empty{ color:var(--text-muted); font-size:0.85rem; padding:0.6rem 0; }
+  .ticket-item{
+    border:1px solid var(--border); border-radius:10px; padding:0.6rem 0.7rem;
+    display:flex; flex-direction:column; gap:0.25rem; background:var(--surface-alt);
+    animation: pop 0.3s ease;
+  }
+  @keyframes pop{ from{ transform:scale(0.97); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .ticket-item .row1{ display:flex; justify-content:space-between; align-items:center; }
+  .ticket-num{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:0.84rem; }
+  .badge{ font-size:0.7rem; font-weight:700; padding:0.15rem 0.55rem; border-radius:999px; text-transform:uppercase; letter-spacing:0.03em; }
+  .badge.abierto{ background:var(--pending-bg); color:var(--pending); }
+  .badge.resuelto{ background:var(--success-bg); color:var(--success); }
+  .ticket-motivo{ font-size:0.8rem; color:var(--text-muted); }
+
+  .demo-card{ padding:0.9rem 1.1rem; font-size:0.8rem; color:var(--text-muted); }
+  .demo-card h3{ margin:0 0 0.5rem; font-size:0.76rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--gold); font-weight:700; }
+  .demo-card code{ background:var(--surface-alt); padding:0.1rem 0.35rem; border-radius:5px; font-family:'IBM Plex Mono',monospace; }
+  .demo-card ul{ margin:0.3rem 0 0; padding-left:1.1rem; }
+  .demo-card li{ margin-bottom:0.25rem; }
+</style>
+
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">IB</div>
+      <div class="brand-text">
+        <h1>InvBot</h1>
+        <span>Andes Valores S.A. · Soporte al inversionista</span>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:0.7rem;">
+      <div class="status-chip"><span class="status-dot" id="authDot"></span><span id="authLabel">Sin identificar</span></div>
+      <button class="reset-btn" id="resetBtn">Reiniciar demo</button>
+    </div>
+  </div>
+  <div class="disclaimer">Prototipo académico conectado en tiempo real a una base de datos PostgreSQL (Supabase) con datos de prueba — no representa información financiera real.</div>
+
+  <div class="layout">
+    <div class="panel chat-panel">
+      <div class="chat-header">
+        <h2>Conversación</h2>
+        <span class="hint">Escribe “menú” en cualquier momento para reiniciar el flujo</span>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="quick-replies" id="quickReplies"></div>
+      <form class="composer" id="composer">
+        <input type="text" id="userInput" placeholder="Escribe tu mensaje…" autocomplete="off" />
+        <button type="submit" id="sendBtn">Enviar</button>
+      </form>
+    </div>
+
+    <div class="side-col">
+      <div class="panel account-card">
+        <h3>Cliente autenticado</h3>
+        <div id="accountBody"><div class="account-empty">Aún no hay una sesión identificada.</div></div>
+      </div>
+
+      <div class="panel tickets-card">
+        <h3>Tickets · base de datos en tiempo real</h3>
+        <div class="sub">Tabla <code style="font-family:'IBM Plex Mono',monospace">tickets</code> — se actualiza al instante cuando InvBot registra una incidencia</div>
+        <div class="ticket-list" id="ticketList"><div class="ticket-empty">Sin tickets registrados todavía.</div></div>
+      </div>
+
+      <div class="panel demo-card">
+        <h3>Datos de prueba (Supabase)</h3>
+        <ul>
+          <li>Cuenta <code>AV-00234</code> · Cédula <code>1712345678</code> (María Fernanda López)</li>
+          <li>Cuenta <code>AV-00591</code> · Cédula <code>0923456781</code> (Carlos Ramírez)</li>
+        </ul>
+        <div id="dbStatus" style="margin-top:0.6rem; font-size:0.76rem;">Conectando a la base de datos…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Conexión real a Supabase (PostgreSQL en tiempo real) ----------
+  // Proyecto "invbot" — llave publicable (segura para uso en navegador con RLS activo).
+  const SUPABASE_URL = "https://jhnvjwmpxdxlfpeegpmg.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_3xk9eL2mAjw_wyUza1s7lA_OQQ3M5I3";
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Caché local de tickets de la cuenta autenticada (se llena desde la BD real
+  // y se mantiene sincronizada vía Realtime — ver subscribeTickets()).
+  let ticketsCache = [];
+  let realtimeChannel = null;
+
+  const TARIFAS = [
+    "Comisión por operación bursátil: 0.35% del monto negociado (mín. $3.00)",
+    "Custodia mensual: 0.05% del valor en custodia (mín. $1.50)",
+    "IVA aplicable sobre comisiones: 15%",
+    "Transferencia de fondos a cuenta bancaria: sin costo, 1 vez al mes",
+  ];
+  const HORARIOS = [
+    "Bolsa de Valores de Quito (BVQ): lunes a viernes, 09:30 – 13:30",
+    "Bolsa de Valores de Guayaquil (BVG): lunes a viernes, 09:30 – 13:30",
+    "Feriados bursátiles: se suspenden las ruedas en feriados nacionales oficiales",
+  ];
+  const MOTIVOS = [
+    { key: "orden_no_ejecutada", label: "Orden no ejecutada" },
+    { key: "error_plataforma", label: "Error en la plataforma" },
+    { key: "reclamo_cobro", label: "Reclamo por un cobro" },
+    { key: "consulta_dividendo", label: "Consulta de dividendo" },
+    { key: "otro", label: "Otro motivo" },
+  ];
+
+  // ---------- Estado de la conversación ----------
+  let state = "AUTH_CUENTA";
+  let session = { cliente: null, authFails: 0, fallbacks: 0, draftTicket: null, pendingOrderQuery: false };
+
+  const messagesEl = document.getElementById("messages");
+  const quickRepliesEl = document.getElementById("quickReplies");
+  const composerEl = document.getElementById("composer");
+  const inputEl = document.getElementById("userInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const accountBody = document.getElementById("accountBody");
+  const ticketList = document.getElementById("ticketList");
+  const authDot = document.getElementById("authDot");
+  const authLabel = document.getElementById("authLabel");
+
+  function scrollToBottom(){ messagesEl.scrollTop = messagesEl.scrollHeight; }
+
+  function addMessage(text, who){
+    const div = document.createElement("div");
+    div.className = "msg " + who;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  function botSay(text){ addMessage(text, "bot"); }
+  function userSay(text){ addMessage(text, "user"); }
+  function systemNote(text){ addMessage(text, "system"); }
+
+  function setQuickReplies(options){
+    quickRepliesEl.innerHTML = "";
+    options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "qr-btn";
+      btn.type = "button";
+      btn.textContent = opt.label;
+      btn.addEventListener("click", () => handleInput(opt.value !== undefined ? opt.value : opt.label, true, opt.label));
+      quickRepliesEl.appendChild(btn);
+    });
+  }
+
+  function menuOptions(){
+    return [
+      { label: "1. Saldo y movimientos", value: "1" },
+      { label: "2. Estado de una orden", value: "2" },
+      { label: "3. Tarifas y comisiones", value: "3" },
+      { label: "4. Retiros y depósitos", value: "4" },
+      { label: "5. Dividendos", value: "5" },
+      { label: "6. Horarios de mercado", value: "6" },
+      { label: "7. Reportar incidencia", value: "7" },
+      { label: "8. Hablar con un asesor", value: "8" },
+    ];
+  }
+
+  function goToMenu(greet){
+    state = "MENU";
+    session.draftTicket = null;
+    session.fallbacks = 0;
+    if (greet) botSay(`¿En qué más puedo ayudarte, ${session.cliente.nombre.split(" ")[0]}?`);
+    setQuickReplies(menuOptions());
+  }
+
+  function updateAuthChip(){
+    if (session.cliente){
+      authDot.classList.add("on");
+      authLabel.textContent = "Identificado · " + session.cliente.cuenta;
+    } else {
+      authDot.classList.remove("on");
+      authLabel.textContent = "Sin identificar";
+    }
+  }
+
+  function renderAccount(){
+    if (!session.cliente){
+      accountBody.innerHTML = '<div class="account-empty">Aún no hay una sesión identificada.</div>';
+      return;
+    }
+    const c = session.cliente;
+    accountBody.innerHTML = `
+      <div class="account-row"><span>Cliente</span><span class="val">${c.nombre}</span></div>
+      <div class="account-row"><span>Cuenta</span><span class="val">${c.cuenta}</span></div>
+      <div class="account-row"><span>Saldo disponible</span><span class="val">$${c.saldo_disponible.toFixed(2)}</span></div>
+      <div class="account-row"><span>Saldo en custodia</span><span class="val">$${c.saldo_custodia.toFixed(2)}</span></div>
+    `;
+  }
+
+  function renderTickets(){
+    if (ticketsCache.length === 0){
+      ticketList.innerHTML = '<div class="ticket-empty">Sin tickets registrados todavía.</div>';
+      return;
+    }
+    ticketList.innerHTML = "";
+    ticketsCache.slice().reverse().forEach(t => {
+      const div = document.createElement("div");
+      div.className = "ticket-item";
+      div.innerHTML = `
+        <div class="row1">
+          <span class="ticket-num">${t.numero}</span>
+          <span class="badge ${t.estado}">${t.estado}</span>
+        </div>
+        <div class="ticket-motivo">${t.nombre} · ${motivoLabel(t.motivo)}</div>
+      `;
+      ticketList.appendChild(div);
+    });
+  }
+
+  function motivoLabel(key){
+    const m = MOTIVOS.find(m => m.key === key);
+    return m ? m.label : key;
+  }
+
+  // Mapea una fila de la tabla `tickets` (esquema real de Supabase) al formato
+  // que usa la UI del prototipo.
+  function mapTicketRow(row){
+    return {
+      numero: row.numero_ticket, idempotency_key: row.idempotency_key,
+      nombre: row.nombre_completo, correo: row.correo, telefono: row.telefono,
+      motivo: row.motivo_consulta, descripcion: row.descripcion,
+      cuenta: row.numero_cuenta, estado: row.estado_solicitud,
+    };
+  }
+
+  // Consulta real: clientes -> cuentas -> ordenes (con nombre del instrumento).
+  async function findCliente(cuenta, cedula){
+    const { data: cli, error: e1 } = await sb.from("clientes").select("*").eq("cedula", cedula.trim()).maybeSingle();
+    if (e1 || !cli) return null;
+    const { data: cta, error: e2 } = await sb.from("cuentas").select("*")
+      .eq("id_cliente", cli.id_cliente).ilike("numero_cuenta", cuenta.trim()).maybeSingle();
+    if (e2 || !cta) return null;
+    const { data: ordenesRaw } = await sb.from("ordenes")
+      .select("numero_orden, tipo_orden, cantidad, estado_orden, fecha_creacion, catalogo_instrumentos(nombre)")
+      .eq("id_cuenta", cta.id_cuenta).order("fecha_creacion", { ascending: false });
+    const ordenes = (ordenesRaw || []).map(o => ({
+      numero: o.numero_orden, instrumento: o.catalogo_instrumentos ? o.catalogo_instrumentos.nombre : "—",
+      tipo: o.tipo_orden, cantidad: o.cantidad, estado: o.estado_orden,
+      fecha: new Date(o.fecha_creacion).toLocaleString("es-EC", { dateStyle: "short", timeStyle: "short" }),
+    }));
+    return {
+      id_cliente: cli.id_cliente, id_cuenta: cta.id_cuenta,
+      cedula: cli.cedula, cuenta: cta.numero_cuenta,
+      nombre: cli.nombre_completo, correo: cli.correo, telefono: cli.telefono,
+      saldo_disponible: Number(cta.saldo_disponible), saldo_custodia: Number(cta.saldo_custodia),
+      ordenes,
+    };
+  }
+
+  // Carga los tickets ya existentes de esta cuenta y activa Realtime para
+  // reflejar inserciones nuevas al instante (tabla `tickets`, Supabase Realtime).
+  async function loadAndSubscribeTickets(cuenta){
+    const { data } = await sb.from("tickets").select("*").eq("numero_cuenta", cuenta).order("fecha_registro");
+    ticketsCache = (data || []).map(mapTicketRow);
+    renderTickets();
+
+    if (realtimeChannel) sb.removeChannel(realtimeChannel);
+    realtimeChannel = sb.channel("tickets-" + cuenta)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "tickets", filter: "numero_cuenta=eq." + cuenta },
+        (payload) => {
+          const t = mapTicketRow(payload.new);
+          if (!ticketsCache.some(x => x.numero === t.numero)){
+            ticketsCache.push(t);
+            renderTickets();
+          }
+        })
+      .subscribe();
+  }
+
+  function isEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
+  function isPhone(v){ return /^(\+?\d{7,13})$/.test(v.trim().replace(/[\s-]/g,"")); }
+
+  // Inserta el ticket en la tabla real `tickets`, respetando la restricción
+  // UNIQUE de idempotency_key para evitar duplicados ante reintentos.
+  async function createTicket(){
+    const draft = session.draftTicket;
+    // idempotency_key es VARCHAR(80) en la BD: se recorta para respetar esa
+    // restricción sin perder unicidad práctica (cuenta+motivo+inicio del detalle).
+    const key = (session.cliente.cuenta + "|" + draft.motivo + "|" + draft.descripcion).slice(0, 80);
+
+    const { data: existingRow } = await sb.from("tickets").select("*").eq("idempotency_key", key).maybeSingle();
+    if (existingRow){
+      const existing = mapTicketRow(existingRow);
+      botSay(`Ese ticket ya había sido registrado: ${existing.numero}. No se crea uno duplicado.`);
+      return existing;
+    }
+
+    let inserted = null;
+    for (let attempt = 0; attempt < 3 && !inserted; attempt++){
+      const numero = "TCK-2026-" + String(Math.floor(1000 + Math.random() * 9000));
+      const { data, error } = await sb.from("tickets").insert({
+        numero_ticket: numero,
+        id_cliente: session.cliente.id_cliente,
+        numero_cuenta: session.cliente.cuenta,
+        nombre_completo: draft.nombre, correo: draft.correo, telefono: draft.telefono,
+        motivo_consulta: draft.motivo, descripcion: draft.descripcion,
+        estado_solicitud: "abierto", canal_origen: "chatbot",
+        idempotency_key: key,
+      }).select().single();
+      if (!error) inserted = data;
+      else if (error.code !== "23505") { // 23505 = violación de restricción UNIQUE (Postgres)
+        botSay("No pude registrar el ticket por un problema de conexión con la base de datos. Intenta de nuevo en unos segundos.");
+        return null;
+      }
+    }
+    if (!inserted){
+      botSay("No pude generar un número de ticket único. Intenta de nuevo.");
+      return null;
+    }
+    const ticket = mapTicketRow(inserted);
+    if (!ticketsCache.some(t => t.numero === ticket.numero)){
+      ticketsCache.push(ticket);
+      renderTickets();
+    }
+    return ticket;
+  }
+
+  // ---------- Máquina de estados ----------
+  async function handleInput(raw, fromButton, displayLabel){
+    const text = String(raw).trim();
+    if (!text) return;
+    if (!fromButton) userSay(text);
+    else userSay(displayLabel ? displayLabel.replace(/^\d+\.\s*/, "") : text);
+
+    const lower = text.toLowerCase();
+    const isMenuCommand = ["menu","menú","cancelar","salir"].includes(lower);
+    if (isMenuCommand && session.cliente){
+      systemNote("Se descartaron los datos parciales de la solicitud en curso.");
+      goToMenu(false);
+      botSay("Volviste al menú principal. ¿En qué te ayudo?");
+      return;
+    }
+
+    switch(state){
+      case "AUTH_CUENTA": {
+        session.tmpCuenta = text;
+        state = "AUTH_CEDULA";
+        botSay("Gracias. Ahora indícame tu número de cédula asociado a la cuenta.");
+        break;
+      }
+      case "AUTH_CEDULA": {
+        botSay("Verificando tus datos…");
+        const cliente = await findCliente(session.tmpCuenta, text);
+        if (cliente){
+          session.cliente = cliente;
+          session.authFails = 0;
+          updateAuthChip();
+          renderAccount();
+          botSay(`¡Listo, ${cliente.nombre.split(" ")[0]}! Verifiqué tu identidad correctamente.`);
+          goToMenu(false);
+          botSay("¿En qué puedo ayudarte hoy?");
+          await loadAndSubscribeTickets(cliente.cuenta);
+        } else {
+          session.authFails += 1;
+          if (session.authFails >= 3){
+            botSay("Por seguridad, bloqueé temporalmente los intentos de identificación en esta sesión. Usa “Reiniciar demo” para volver a intentarlo.");
+            state = "LOCKED";
+            setQuickReplies([]);
+            inputEl.disabled = true; sendBtn.disabled = true;
+          } else {
+            botSay(`No encontré una cuenta con esos datos (intento ${session.authFails}/3). Ingresa nuevamente tu número de cuenta.`);
+            state = "AUTH_CUENTA";
+          }
+        }
+        break;
+      }
+
+      case "MENU": {
+        handleMenuChoice(text);
+        break;
+      }
+
+      case "ORDER_NUMBER": {
+        const orden = session.cliente.ordenes.find(o => o.numero.toLowerCase() === lower || o.numero.toLowerCase() === "ord-" + lower);
+        if (orden){
+          botSay(`Tu orden ${orden.numero} (${orden.tipo} de ${orden.cantidad} de ${orden.instrumento}) está: ${orden.estado.toUpperCase()}.\nÚltima actualización: ${orden.fecha}.`);
+        } else {
+          botSay("No encontré esa orden en tu cuenta. Verifica el número o escribe “menú” para volver.");
+          break;
+        }
+        goToMenu(true);
+        break;
+      }
+
+      case "TICKET_NOMBRE": {
+        session.draftTicket.nombre = text;
+        state = "TICKET_CORREO";
+        botSay("¿A qué correo electrónico te contactamos?");
+        break;
+      }
+      case "TICKET_CORREO": {
+        if (!isEmail(text)){ botSay("Ese correo no parece válido. Ingresa un correo con formato nombre@dominio.com"); break; }
+        session.draftTicket.correo = text;
+        state = "TICKET_TELEFONO";
+        botSay("¿Tu número de teléfono de contacto?");
+        break;
+      }
+      case "TICKET_TELEFONO": {
+        if (!isPhone(text)){ botSay("Ese teléfono no parece válido. Usa formato +593987654321 o 10 dígitos."); break; }
+        session.draftTicket.telefono = text;
+        state = "TICKET_MOTIVO";
+        botSay("Selecciona el motivo de tu consulta:");
+        setQuickReplies(MOTIVOS.map(m => ({ label: m.label, value: m.key })));
+        break;
+      }
+      case "TICKET_MOTIVO": {
+        const motivo = MOTIVOS.find(m => m.key === lower || m.label.toLowerCase() === lower);
+        if (!motivo){ botSay("Elige una de las opciones del motivo, por favor."); setQuickReplies(MOTIVOS.map(m => ({ label: m.label, value: m.key }))); break; }
+        session.draftTicket.motivo = motivo.key;
+        state = "TICKET_DESCRIPCION";
+        botSay("Cuéntame brevemente qué sucedió.");
+        break;
+      }
+      case "TICKET_DESCRIPCION": {
+        session.draftTicket.descripcion = text;
+        state = "TICKET_CONFIRM";
+        const d = session.draftTicket;
+        botSay(`Resumen de tu solicitud:\n• Nombre: ${d.nombre}\n• Correo: ${d.correo}\n• Teléfono: ${d.telefono}\n• Motivo: ${motivoLabel(d.motivo)}\n• Detalle: ${d.descripcion}\n\n¿Confirmas que estos datos son correctos?`);
+        setQuickReplies([{ label: "Sí, confirmar", value: "confirmar" }, { label: "Cancelar", value: "menu" }]);
+        break;
+      }
+      case "TICKET_CONFIRM": {
+        if (lower === "confirmar" || lower === "sí" || lower === "si"){
+          botSay("Registrando tu ticket en la base de datos…");
+          const ticket = await createTicket();
+          if (ticket){
+            botSay(`Listo. Registré tu solicitud con el ticket ${ticket.numero}. Un asesor te contactará en un máximo de 24 horas.`);
+          }
+          goToMenu(false);
+        } else {
+          goToMenu(false);
+        }
+        break;
+      }
+
+      default: {
+        botSay("Escribe “menú” para ver las opciones disponibles.");
+      }
+    }
+  }
+
+  function handleMenuChoice(text){
+    const lower = text.toLowerCase();
+    const map = {
+      "1": "saldo", "saldo": "saldo", "saldo y movimientos": "saldo",
+      "2": "orden", "orden": "orden", "estado de una orden": "orden",
+      "3": "tarifas", "tarifas": "tarifas", "tarifas y comisiones": "tarifas",
+      "4": "retiros", "retiros": "retiros", "retiros y depósitos": "retiros",
+      "5": "dividendos", "dividendos": "dividendos",
+      "6": "horarios", "horarios": "horarios", "horarios de mercado": "horarios",
+      "7": "incidencia", "incidencia": "incidencia", "reportar incidencia": "incidencia",
+      "8": "asesor", "asesor": "asesor", "hablar con un asesor": "asesor",
+    };
+    const choice = map[lower];
+    if (!choice){
+      session.fallbacks += 1;
+      if (session.fallbacks >= 2){
+        botSay("Sigo sin identificar tu solicitud. ¿Prefieres hablar directamente con un asesor?");
+        setQuickReplies([{ label: "Sí, hablar con un asesor", value: "8" }, { label: "Ver menú de nuevo", value: "menu" }]);
+      } else {
+        botSay("No entendí tu mensaje. Elige una opción del menú:");
+        setQuickReplies(menuOptions());
+      }
+      return;
+    }
+    session.fallbacks = 0;
+    const c = session.cliente;
+    switch(choice){
+      case "saldo":
+        botSay(`Saldo disponible: $${c.saldo_disponible.toFixed(2)}\nSaldo en custodia: $${c.saldo_custodia.toFixed(2)}`);
+        goToMenu(true);
+        break;
+      case "orden":
+        state = "ORDER_NUMBER";
+        botSay("Indícame el número de orden que quieres consultar:");
+        setQuickReplies(c.ordenes.map(o => ({ label: o.numero, value: o.numero })));
+        break;
+      case "tarifas":
+        botSay(TARIFAS.join("\n"));
+        goToMenu(true);
+        break;
+      case "retiros":
+        botSay("Los retiros a tu cuenta bancaria registrada se acreditan en 1 a 2 días hábiles, sin monto mínimo. Los depósitos se reflejan de forma inmediata si son por transferencia interbancaria.");
+        goToMenu(true);
+        break;
+      case "dividendos":
+        botSay("Tu próximo dividendo registrado: BANCO PICHINCHA C.A., pago estimado el 15/09/2026, sujeto a retención según normativa vigente.");
+        goToMenu(true);
+        break;
+      case "horarios":
+        botSay(HORARIOS.join("\n"));
+        goToMenu(true);
+        break;
+      case "incidencia":
+        session.draftTicket = { nombre: c.nombre, correo: "", telefono: "" };
+        state = "TICKET_NOMBRE";
+        botSay(`Vamos a registrar tu incidencia. Confirmo tu nombre: ${c.nombre}. Si es correcto, escríbelo de nuevo; si no, corrígelo.`);
+        break;
+      case "asesor":
+        systemNote(`Escalamiento registrado — notificación enviada al asesor humano (simulada) para la cuenta ${c.cuenta}.`);
+        botSay("Perfecto, notifiqué a un asesor humano. Te contactará en breve por el mismo canal.");
+        goToMenu(false);
+        break;
+    }
+  }
+
+  composerEl.addEventListener("submit", function(e){
+    e.preventDefault();
+    const val = inputEl.value;
+    inputEl.value = "";
+    handleInput(val, false);
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    location.reload();
+  });
+
+  // ---------- Arranque ----------
+  botSay("¡Hola! Soy InvBot, el asistente de Andes Valores S.A. Para ayudarte, primero necesito verificar tu identidad.");
+  botSay("Indícame tu número de cuenta (ej. AV-00234):");
+  updateAuthChip();
+  renderAccount();
+  renderTickets();
+
+  // Verifica la conexión real con Supabase al cargar (no bloquea la conversación).
+  const dbStatusEl = document.getElementById("dbStatus");
+  (async () => {
+    try{
+      const { error } = await sb.from("clientes").select("id_cliente", { count: "exact", head: true });
+      if (error) throw error;
+      dbStatusEl.textContent = "✓ Conectado a Supabase (PostgreSQL en tiempo real)";
+      dbStatusEl.style.color = "var(--success)";
+    } catch(e){
+      dbStatusEl.textContent = "⚠ No se pudo conectar a la base de datos ahora mismo.";
+      dbStatusEl.style.color = "var(--danger)";
+    }
+  })();
+})();
+</script>
+
+</body>
+</html>
